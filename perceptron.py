@@ -9,54 +9,88 @@ http://www.evanfosmark.com/2011/07/a-simple-perceptron-implementation-in-python
 
 
 class Perceptron(object):
-
     def __init__(self, weights=None, threshold=0.5):
+        "Constructor"
         self.threshold = threshold
         self.weights = weights
         self.verbose = False
 
     def output(self, input_vector):
-        if self._total(input_vector) < self.threshold:
-            return 0
-        else:
-            return 1
+        "Check a input vector against the current threshold"
+
+        return self._total(input_vector) >= self.threshold
 
     def train(self, training_set, alpha=0.1, end_after=100):
-        if self.weights is None:
+        """Train the perceptron
+
+        @param training_set: data used to train the perceptron
+        @type training_set: dict
+        @param alpha: factor of training
+        @type alpha: float
+        @param end_after: maximus number of iterations before stop. If set to
+            None, it doesn't stop
+        @type end_after: integer or None
+
+        @return: the number of needed iterations
+        @rtype: integer
+        """
+
+        # weights was not defined, set an empty list
+        if not self.weights:
             self.weights = [0] * len(training_set.keys()[0])
-        n = 0
+
+        result = 0
         updated = True
+
         while(updated):
-            n += 1
             updated = False
-            for xv, t in training_set.items():
-                y = self.output(xv)
-                if(y != t):
-                    self._update_weights(alpha, t, y, xv)
-                    self._update_threshold(alpha, t, y)
+
+            for input_vector, test in training_set.items():
+                output = self.output(input_vector)
+
+                if output != test:
+                    self._update_weights(alpha, test, output, input_vector)
+                    self._update_threshold(alpha, test, output)
+
                     updated = True
-            if end_after is not None and n >= end_after:
+
+            result += 1
+
+            # Check if we achieved the limit of iterations (if any)
+            if end_after and result >= end_after:
                 break
-        return n
+
+        return result
 
     def test(self, training_set):
-        for xv, t in training_set.items():
-            if(self.output(xv) != t):
+        "Check if the perceptron is correctly trained for a test suite"
+
+        for input_vector, test in training_set.items():
+            if self.output(input_vector) != test:
                 return False
+
         return True
 
     def _total(self, input_vector):
+        "Return the output value of the perceptron for an input"
+
         total = 0
-        for w, x in zip(self.weights, input_vector):
-            total += (w * x)
+
+        for weight, input_value in zip(self.weights, input_vector):
+            total += weight * input_value
+
         return total
 
-    def _update_weights(self, alpha, t, y, xv):
-        for i in range(len(self.weights)):
-            self.weights[i] = (alpha * (t - y) * xv[i]) + self.weights[i]
+    def _update_weights(self, alpha, test, output, input_vector):
+        "Update the weights of the of the diferent variables of the perceptron"
 
-    def _update_threshold(self, alpha, t, y):
-        self.threshold = (alpha * (t - y) * -1) + self.threshold
+        for i in range(len(self.weights)):
+            self.weights[i] += alpha * (test - output) * input_vector[i]
+
+    def _update_threshold(self, alpha, test, output):
+        "Update the threshold of the perceptron"
+
+        self.threshold -= alpha * (test - output)
 
 
 if __name__ == '__main__':
